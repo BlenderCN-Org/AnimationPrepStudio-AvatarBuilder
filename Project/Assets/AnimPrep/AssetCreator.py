@@ -81,8 +81,7 @@ for m in bpy.data.materials:
 	for slot in m.texture_slots:
 
 		if slot is not None and hasattr(slot.texture, 'image'):
-			print(slot.texture)
-			filename = slot.texture.image.filepath  # the filename and extension of the image, strip dir info
+			filename = slot.texture.image.filepath #.encode('ascii','ignore').decode()  # the filename and extension of the image, strip dir info
 			filename = os.path.basename(filename.replace('//', ''))  # Extract file name from path
 
 			texture_data = {
@@ -341,11 +340,9 @@ for m in bpy.data.materials:
 	for slot in m.texture_slots:
 
 		if slot is not None and hasattr(slot.texture, 'image'):
-			print(slot.texture)
-			filename = slot.texture.image.filepath  # the filename and extension of the image, strip dir info
+			filename = slot.texture.image.filepath #.encode('ascii','ignore').decode()  # the filename and extension of the image, strip dir info
 			filename = os.path.basename(filename.replace('//', ''))  # Extract file name from path
-			print("HERES THE FILENAME")
-			print(filename)
+
 			texture_data = {
 				"filename": filename,
 
@@ -382,8 +379,7 @@ for m in bpy.data.materials:
 		"texture_slots": used_texture_slots,
 	}
 	material_data.append(mat)
-	print("material_data")
-	print(material_data)
+
 	if (used_texture_slots.__len__() is not 0):
 		mat['texture'] = used_texture_slots[0]['filename'] #default to using the filename of the first slot
 		mat['alpha'] = used_texture_slots[0]['alpha_factor']
@@ -950,7 +946,7 @@ def ProcessModelFile(context, filepath, blenderpath, LogMessage):
 		tempfile = open(tempfilepath, "w")
 
 
-		blenderScriptText = context.get_blendscript() + blenderscript_nodes
+		blenderScriptText = blenderscript_nodes + context.get_blendscript()
 
 		tempfile.write(blenderScriptText)
 		tempfile.close()
