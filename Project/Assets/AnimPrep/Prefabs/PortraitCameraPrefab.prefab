@@ -180,7 +180,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1297640459587740943}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.07951976, y: 0.84043926, z: -7.202932}
+  m_LocalPosition: {x: 0.0043436373, y: 1.413, z: -12.114962}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 1297640459370942474}
@@ -213,17 +213,17 @@ Camera:
     height: 1
   near clip plane: 0.1
   far clip plane: 1000
-  field of view: 15
+  field of view: 1
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 1
-  m_RenderingPath: 0
+  m_RenderingPath: 1
   m_TargetTexture: {fileID: 8400000, guid: 937d4afda0d7c0745b19322c834a8965, type: 2}
   m_TargetDisplay: 0
-  m_TargetEye: 3
+  m_TargetEye: 0
   m_HDR: 1
   m_AllowMSAA: 1
   m_AllowDynamicResolution: 0
@@ -238,7 +238,7 @@ Behaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1297640459587740943}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!114 &1297640459587740928
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -246,7 +246,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1297640459587740943}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8444d8e87b4b27c43967ee3f24f52944, type: 3}
   m_Name: 
@@ -326,7 +326,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   t: 0.7499998
   dir: 0
-  skyboxMaterial: {fileID: 2100000, guid: b028ca26d06b2ef4fa1a51cd55473aa3, type: 2}
+  skyboxMaterial: {fileID: 0}
   directionalLight: {fileID: 2426730494697592395}
 --- !u!1 &2426730494697592392
 GameObject:

@@ -132,6 +132,8 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 				return;
 			}	
 
+			importer.isReadable = true;
+
 			importer.importAnimation = true;
 			importer.animationType = ModelImporterAnimationType.Human;
 
@@ -396,6 +398,20 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 	}
 		
 
+	public struct MakehumanRenderer {
+		public Renderer renderer;
+		public MakehumanMeshBoneType type;
+	}
+
+
+	public enum MakehumanMeshBoneType {
+		none,
+		eyeballs,
+		eyelashes,
+		eyebrows,
+		teeth,
+		tongue		
+	}
 
 
 	static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
@@ -458,7 +474,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 				}
 
 				string modelFileName = Path.GetFileNameWithoutExtension( assetPath );
-				string destinationPath = prefabsFolder + modelFileName + ".prefab";
+				string destinationPath = Path.Combine(prefabsFolder, modelFileName + ".prefab");
 
 				GameObject model = (GameObject)PrefabUtility.InstantiatePrefab(modelAsset);
 				GameObject real = GameObject.Instantiate(model); //this is a game object that we can re-arange and change parenting or objects, then save as the original prefab later on
@@ -495,301 +511,438 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 				var childrenRenderers = real.GetComponentsInChildren<Renderer>();
 
-				foreach (Renderer renderer in childrenRenderers) {
+				//ArmatureLinker linker = animator.transform.GetComponentInChildren<ArmatureLinker> ();
 
+				MakehumanRenderer[] makehumanRenderers = new MakehumanRenderer[childrenRenderers.Length];
+
+
+				List<string> bonesList = new List<string> ();
+
+				//foreach (Renderer renderer in childrenRenderers) {
+
+				for (int i = 0; i < childrenRenderers.Length; i++) {
+					Renderer renderer = childrenRenderers [i];
+
+					makehumanRenderers [i] = new MakehumanRenderer {
+						renderer = renderer,
+						type = MakehumanMeshBoneType.none
+					};
+
+
+					var skinnedRenderer = renderer.GetComponent<SkinnedMeshRenderer> ();
+					if (skinnedRenderer == null) {
+						continue;
+					}
+					skinnedRenderer.updateWhenOffscreen = true; //always do this for all characters so they will be visible to camcorders
+					
+					var weights = skinnedRenderer.sharedMesh.boneWeights;
+					//var allBones = skinnedRenderer.bones;
+
+					bonesList.Clear ();
+
+					foreach (var weight in weights) {
+						var bIdx = weight.boneIndex0;
+						var bTran = skinnedRenderer.bones [bIdx];
+
+						if (!bonesList.Contains (bTran.name)) {
+							bonesList.Add (bTran.name);
+							//Debug.Log (bTran.name);
+						}
+					}
+
+
+					if (bonesList.Count == 2 &&
+						new string[] {
+							"eye.R",
+							"eye.L"
+						}.All (n => bonesList.Contains (n))) {
+						//Debug.Log ("I THINK THIS IS AN EYE");
+						makehumanRenderers [i].type = MakehumanMeshBoneType.eyeballs;
+						continue;
+					}
+
+
+					if (bonesList.Count == 5 &&
+						new string[] {
+							"head",
+							"orbicularis03.R",
+							"orbicularis03.L",
+							"orbicularis04.R",
+							"orbicularis04.L"
+						}.All (n => bonesList.Contains (n))) {
+						//Debug.Log ("I THINK THIS IS AN EYELASH");
+						makehumanRenderers [i].type = MakehumanMeshBoneType.eyelashes;
+						continue;
+					}
+
+
+					if (bonesList.Count == 3 &&
+						new string[] {
+							"head",
+							"oculi01.R",
+							"oculi01.L"
+						}.All (n => bonesList.Contains (n))) {
+						//Debug.Log ("I THINK THIS IS AN EYEBROW");
+						makehumanRenderers [i].type = MakehumanMeshBoneType.eyebrows;
+						continue;
+					}
+
+
+					if (bonesList.Count == 2 &&
+						new string[] {
+							"jaw",
+							"head"
+						}.All (n => bonesList.Contains (n))) {
+						//Debug.Log ("I THINK THIS IS TEETH");
+						makehumanRenderers [i].type = MakehumanMeshBoneType.teeth;
+						continue;
+					}
+
+
+					if (bonesList.Count == 10 &&
+						new string[] {
+							"tongue07.R",
+							"tongue04",
+							"tongue07.L",
+							"tongue03",
+							"tongue06.L",
+							"tongue05.L",
+							"tongue02",
+							"tongue01",
+							"tongue06.R",
+							"tongue05.R",
+						}.All (n => bonesList.Contains (n))) {
+						//Debug.Log ("I THINK THIS IS A TONGUE");
+						makehumanRenderers [i].type = MakehumanMeshBoneType.tongue;
+						continue;
+					}
+
+				}
+
+
+				//foreach (Renderer renderer in childrenRenderers) {
+				foreach (MakehumanRenderer makehumanRenderer in makehumanRenderers) {
+					var renderer = makehumanRenderer.renderer;
 					if (renderer != null) {
-						renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-						renderer.receiveShadows = true;
+						continue;
+					}
 
-						var material = renderer.sharedMaterial;
+					renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+					renderer.receiveShadows = true;
 
-						var mainColor = material.GetColor ("_Color");
-						mainColor.a = 1.0f; //always do this, just because unity is weird and seemingly random alpha values always appear
-						material.SetColor ("_Color", mainColor);
+					var material = renderer.sharedMaterial;
 
-
-						if (materialsJson != null) {
-							//THE NEW WAY (USING BLENDER MATERIALS JSON)
-							//var textureFileName = Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture)); //takes a full path to an texture asset, and returs the filename with extension (which is used as key for materials json)
-							var was = Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture));
-							var materialName = material.name;// Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture)); //takes a full path to an texture asset, and returs the filename with extension (which is used as key for materials json)
-							if (material.mainTexture != null) {
-								materialName = Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture)); //takes a full path to an texture asset, and returs the filename with extension (which is used as key for materials json)
-							}
-
-							if (materialsJson.ContainsKey (materialName)) {		
-
-								//if (materialsJson.ContainsKey (textureFileName)) {
-
-								//var blenderMaterial = materialsJson [textureFileName];
-								var blenderMaterial = materialsJson [materialName];
+					var mainColor = material.GetColor ("_Color");
+					mainColor.a = 1.0f; //always do this, just because unity is weird and seemingly random alpha values always appear
+					material.SetColor ("_Color", mainColor);
 
 
-								Texture2D diffTex = null;
-								Texture2D bumpTex = null;
-								Texture2D specularTex = null;
-								Texture2D emissionTex = null;
+					if (materialsJson != null) {
+						//THE NEW WAY (USING BLENDER MATERIALS JSON)
+						//var textureFileName = Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture)); //takes a full path to an texture asset, and returs the filename with extension (which is used as key for materials json)
+						var was = Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture));
+						var materialName = material.name;// Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture)); //takes a full path to an texture asset, and returs the filename with extension (which is used as key for materials json)
+						if (material.mainTexture != null) {
+							materialName = Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture)); //takes a full path to an texture asset, and returs the filename with extension (which is used as key for materials json)
+						}
 
-								bool enableAlpha = false;
-								float emit_factor = 0;
+						if (materialsJson.ContainsKey (materialName)) {		
 
-								var use_map_color_diffuse = false;
-								var use_map_bump = false;
-								var use_map_specular = false;
-								var use_map_emit = false;
+							//if (materialsJson.ContainsKey (textureFileName)) {
 
-								foreach (var slot in blenderMaterial.texture_slots) { //check all slots to see if there are any spec or emmit textures
-									if (slot.use_map_color_diffuse) {
-										//Debug.Log("use_map_color_diffuse " + slot.filename);
-										var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
+							//var blenderMaterial = materialsJson [textureFileName];
+							var blenderMaterial = materialsJson [materialName];
+
+
+							Texture2D diffTex = null;
+							Texture2D bumpTex = null;
+							Texture2D specularTex = null;
+							Texture2D emissionTex = null;
+
+							bool enableAlpha = false;
+							float emit_factor = 0;
+
+							var use_map_color_diffuse = false;
+							var use_map_bump = false;
+							var use_map_specular = false;
+							var use_map_emit = false;
+
+							foreach (var slot in blenderMaterial.texture_slots) { //check all slots to see if there are any spec or emmit textures
+								if (slot.use_map_color_diffuse) {										
+									//Debug.Log("use_map_color_diffuse " + slot.filename);
+									//var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
+									var texPath = Path.Combine(Path.GetDirectoryName(assetPath), slot.filename);
+									if (File.Exists (texPath)) {
 										var folder = Path.GetDirectoryName (texPath);
-										//var filename = Path.GetFileNameWithoutExtension (texPath);
-
 										diffTex = AssetDatabase.LoadAssetAtPath (Path.Combine (folder, slot.filename), typeof(Texture2D)) as Texture2D;
 
 										TextureImporter A = (TextureImporter)AssetImporter.GetAtPath (Path.Combine (folder, slot.filename));
 										enableAlpha = blenderMaterial.use_transparency && A.DoesSourceTextureHaveAlpha ();
 									}
-									if (slot.use_map_normal) {		
-										//Debug.Log("use_map_normal " + slot.filename);
-										var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
+								}
+								if (slot.use_map_normal) {		
+									//Debug.Log("use_map_normal " + slot.filename);
+									//var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
+									var texPath = Path.Combine(Path.GetDirectoryName(assetPath), slot.filename);
+									if (File.Exists (texPath)) {
 										var folder = Path.GetDirectoryName (texPath);
-										//var filename = Path.GetFileNameWithoutExtension (texPath);
-
 										bumpTex = AssetDatabase.LoadAssetAtPath (Path.Combine (folder, slot.filename), typeof(Texture2D)) as Texture2D;
-
-										/*TextureImporter textureImporter = AssetImporter.GetAtPath (texPath) as TextureImporter;
-										textureImporter.textureType = TextureImporterType.NormalMap;
-										AssetDatabase.ImportAsset (texPath, ImportAssetOptions.ForceUpdate);*/
-									}
-									if (slot.use_map_specular) {
-										//Debug.Log("use_map_specular " + slot.filename);
-										var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
+									}			
+								}
+								if (slot.use_map_specular) {
+									//Debug.Log("use_map_specular " + slot.filename);
+									//var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
+									var texPath = Path.Combine(Path.GetDirectoryName(assetPath), slot.filename);
+									if (File.Exists (texPath)) {
 										var folder = Path.GetDirectoryName (texPath);
-										//var filename = Path.GetFileNameWithoutExtension (texPath);
-
 										specularTex = AssetDatabase.LoadAssetAtPath (Path.Combine (folder, slot.filename), typeof(Texture2D)) as Texture2D;
-
 									}
-									if (slot.use_map_emit) {
-										//Debug.Log("use_map_emit " + slot.filename);
-										var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
-										var folder = Path.GetDirectoryName (texPath);
-										//var filename = Path.GetFileNameWithoutExtension (texPath);
-
+								}
+								if (slot.use_map_emit) {
+									//Debug.Log("use_map_emit " + slot.filename);
+									//var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
+									var texPath = Path.Combine(Path.GetDirectoryName(assetPath), slot.filename);
+									if (File.Exists (texPath)) {
+										var folder = Path.GetDirectoryName (texPath);							
 										emissionTex = AssetDatabase.LoadAssetAtPath (Path.Combine (folder, slot.filename), typeof(Texture2D)) as Texture2D;
-
-										emit_factor = slot.emit_factor;
 									}
-
-									use_map_color_diffuse |= slot.use_map_color_diffuse;
-									use_map_bump |= slot.use_map_normal;
-									use_map_specular |= slot.use_map_specular;
-									use_map_emit |= slot.use_map_emit;
+									emit_factor = slot.emit_factor;
 								}
 
-								var specIsBlack = 
-									(blenderMaterial.specular_color.r * blenderMaterial.specular_intensity) == 0 
-									&&
-									(blenderMaterial.specular_color.g * blenderMaterial.specular_intensity) == 0  
-									&&
-									(blenderMaterial.specular_color.b * blenderMaterial.specular_intensity) == 0;
+								use_map_color_diffuse |= slot.use_map_color_diffuse;
+								use_map_bump |= slot.use_map_normal;
+								use_map_specular |= slot.use_map_specular;
+								use_map_emit |= slot.use_map_emit;
+							}
 
-								if (!specIsBlack || use_map_specular) {
-									material.shader = Shader.Find ("Standard (Specular setup)"); //the default fallback shader
-									material.SetColor ("_SpecColor", new Color (
-										blenderMaterial.specular_color.r * blenderMaterial.specular_intensity * 0.25f,//default values are way too high for Standard shader so multiply by 0.25
-										blenderMaterial.specular_color.g * blenderMaterial.specular_intensity * 0.25f,
-										blenderMaterial.specular_color.b * blenderMaterial.specular_intensity * 0.25f
-									));
+							var specIsBlack = 
+								(blenderMaterial.specular_color.r * blenderMaterial.specular_intensity) == 0 
+								&&
+								(blenderMaterial.specular_color.g * blenderMaterial.specular_intensity) == 0  
+								&&
+								(blenderMaterial.specular_color.b * blenderMaterial.specular_intensity) == 0;
 
-
-								}
-
-								if (use_map_color_diffuse) { //set all white and adjust brightness based on diffuse intensity set from blender
-									material.SetColor ("_Color",  new Color (
-										blenderMaterial.diffuse_intensity,
-										blenderMaterial.diffuse_intensity,
-										blenderMaterial.diffuse_intensity,
-										blenderMaterial.alpha
-									));
-								} else { 
-									material.SetColor ("_Color",  new Color (// has no texture, thus pass through the color and adjust on diffuse intensity set from blender
-										mainColor.r * blenderMaterial.diffuse_intensity,
-										mainColor.g * blenderMaterial.diffuse_intensity,
-										mainColor.b * blenderMaterial.diffuse_intensity,
-										blenderMaterial.alpha
-									));
-
-									if (blenderMaterial.use_transparency) { //has no texture but alpha was set, so ensure to honor that
-										enableAlpha = true;
-									}
-								}
-
-								if (enableAlpha) {//change to opaque https://sassybot.com/blog/swapping-rendering-mode-in-unity-5-0/
-
-									material.SetInt ("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
-									material.SetInt ("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-									material.SetInt ("_ZWrite", 0);
-									material.DisableKeyword ("_ALPHATEST_ON");
-									material.DisableKeyword ("_ALPHABLEND_ON");
-									material.EnableKeyword ("_ALPHAPREMULTIPLY_ON");
-									material.renderQueue = 3000;
-
-								} else { //OPAQUE
-
-									material.SetInt ("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
-									material.SetInt ("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
-									material.SetInt ("_ZWrite", 1);
-									material.DisableKeyword ("_ALPHATEST_ON");
-									material.DisableKeyword ("_ALPHABLEND_ON");
-									material.DisableKeyword ("_ALPHAPREMULTIPLY_ON");
-									material.renderQueue = -1;
-
-								}
-									
-								if (use_map_color_diffuse) {
-									material.SetTexture ("_MainTex", diffTex);
-								}
-								if (use_map_bump) {
-									material.SetTexture ("_BumpMap", bumpTex);
-								}
-								if (use_map_emit) {
-									material.EnableKeyword ("_EMISSION"); //You must enable the correct Keywords for your required Standard Shader variant
-									material.SetTexture ("_EmissionMap", emissionTex);
-									material.SetColor ("_EmissionColor", new Color (
-										emit_factor,
-										emit_factor,
-										emit_factor
-									));
-								}
-
-								if (use_map_specular) {
-									material.EnableKeyword ("_SPECGLOSSMAP"); //You must enable the correct Keywords for your required Standard Shader variant
-									material.SetTexture ("_SpecGlossMap", specularTex);
-								}
-
-								material.SetFloat ("_GlossMapScale", blenderMaterial.specular_hardness / 511f);
-								material.SetFloat ("_Glossiness", blenderMaterial.specular_hardness / 511f);
-								material.SetFloat ("_Shininess", blenderMaterial.specular_hardness / 511f); //synonmus with _Glossiness if using legacy shaders
-
-								if (!use_map_specular && !use_map_emit) {
-									if (blenderMaterial.key.ToLower ().Contains ("hair")) {
-										material.shader = Shader.Find ("Hair/Standard Two Sided Soft Blend");
-										material.SetFloat ("_Cutoff", 0.05f);
-									} else if (
-										blenderMaterial.key.ToLower ().Contains ("eye") && (
-											blenderMaterial.key.ToLower ().Contains ("lash")
-											||
-											blenderMaterial.key.ToLower ().Contains ("brow")
-										)) { //if its hair sprites
-										material.shader = Shader.Find ("Sprites/Default");
-										continue; //it's no longer a stander shader, nothing more to be done
-									}
-								}
-
+							if (!specIsBlack || use_map_specular) {
+								material.shader = Shader.Find ("Standard (Specular setup)"); //the default fallback shader
+								material.SetColor ("_SpecColor", new Color (
+									blenderMaterial.specular_color.r * blenderMaterial.specular_intensity * 0.25f,//default values are way too high for Standard shader so multiply by 0.25
+									blenderMaterial.specular_color.g * blenderMaterial.specular_intensity * 0.25f,
+									blenderMaterial.specular_color.b * blenderMaterial.specular_intensity * 0.25f
+								));
 
 
 							}
 
-						} else {
-							/*
-							material.shader = Shader.Find ("Standard (Specular setup)"); //the default fallback shader
-							//THE OLD WAY - USE KEYWORDS IN MATERIAL NAME TO CONTROL SHADER KEYWORDS
+							if (use_map_color_diffuse) { //set all white and adjust brightness based on diffuse intensity set from blender
+								material.SetColor ("_Color",  new Color (
+									blenderMaterial.diffuse_intensity,
+									blenderMaterial.diffuse_intensity,
+									blenderMaterial.diffuse_intensity,
+									blenderMaterial.alpha
+								));
+							} else { 
+								material.SetColor ("_Color",  new Color (// has no texture, thus pass through the color and adjust on diffuse intensity set from blender
+									mainColor.r * blenderMaterial.diffuse_intensity,
+									mainColor.g * blenderMaterial.diffuse_intensity,
+									mainColor.b * blenderMaterial.diffuse_intensity,
+									blenderMaterial.alpha
+								));
 
-							var color222 = material.GetColor ("_Color");
-
-							color222.a = 1.0f; //always do this, just because unity is weird and seemingly random alpha values always appear
-							material.SetColor ("_Color", color222);
-
-							if (material.mainTexture != null) {
-
-								string path = AssetDatabase.GetAssetPath (material.mainTexture);
-								TextureImporter A = (TextureImporter)AssetImporter.GetAtPath (path);
-
-								if (!A.DoesSourceTextureHaveAlpha ()) {//change to opaque https://sassybot.com/blog/swapping-rendering-mode-in-unity-5-0/
-									material.SetInt ("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
-									material.SetInt ("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
-									material.SetInt ("_ZWrite", 1);
-									material.DisableKeyword ("_ALPHATEST_ON");
-									material.DisableKeyword ("_ALPHABLEND_ON");
-									material.DisableKeyword ("_ALPHAPREMULTIPLY_ON");
-									material.renderQueue = -1;
-								}
-
-								var matTextureName = material.mainTexture.name.ToLower ();
-								//Debug.Log ("MAT NAME " + matTextureName);
-								var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
-								var texName = Path.GetFileNameWithoutExtension (texPath);
-
-								//Debug.Log ("matTextureName" + matTextureName);
-								//Debug.Log ("Texture Path" + texPath);
-
-								Texture specularTex = GetFileByKeywords (texPath, new[] {
-									"_Spec",
-									"_spec",
-									"_Specularity",
-									"_specularity",
-									"_Specular",
-									"_specular"
-								});
-								Texture metallicTex = GetFileByKeywords (texPath, new[] { "_Metallic", "_metallic" });
-
-								if (specularTex != null) {
-									//Debug.Log ("JUST SET SPECULAR SETUP!! " + specularTex);
-									material.shader = Shader.Find ("Standard (Specular setup)");
-									material.EnableKeyword ("_SPECGLOSSMAP"); //You must enable the correct Keywords for your required Standard Shader variant
-									material.SetTexture ("_SpecGlossMap", specularTex);
-									material.SetColor ("_SpecColor", Color.white);
-								} else {
-									if (metallicTex != null) {
-										material.EnableKeyword ("_METALLICGLOSSMAP"); //You must enable the correct Keywords for your required Standard Shader variant
-										material.SetTexture ("_MetallicGlossMap", metallicTex);
-									}
-								}
-
-								Texture emissionTex = GetFileByKeywords (texPath, new[] { "_Emission", "_emission" });
-								if (emissionTex != null) {
-									material.EnableKeyword ("_EMISSION"); //You must enable the correct Keywords for your required Standard Shader variant
-									material.SetTexture ("_EmissionMap", emissionTex);
-									material.SetColor ("_EmissionColor", Color.white);
-								}
-
-								if (specularTex == null && emissionTex == null) {
-									if (matTextureName.Contains ("_hair")) {
-										material.shader = Shader.Find ("Custom/Standard Two Sided Soft Blend");
-										material.SetFloat ("_Cutoff", 0.05f);
-									} else if (
-										matTextureName.Contains ("eyelash") ||
-										matTextureName.Contains ("eyebrow")) { //if its hair sprites
-										material.shader = Shader.Find ("Sprites/Default");
-										continue; //it's no longer a stander shader, nothing more to be done
-									}
+								if (blenderMaterial.use_transparency) { //has no texture but alpha was set, so ensure to honor that
+									enableAlpha = true;
 								}
 							}
 
+							if (enableAlpha) {//change to opaque https://sassybot.com/blog/swapping-rendering-mode-in-unity-5-0/
 
-							if (material.HasProperty ("_Mode") && material.GetFloat ("_Mode").Equals (3)) { //if the exported material has transparency
-								//Debug.Log ("MODE 3 " + material);
-								if (color222.a >= 0.9f) { //because blender/unity are weird, and setting blender to 1 results in unity using opaque mode
-									color222.a = 1.0f;
-									material.SetColor ("_Color", color222);
-								}
-								//material.SetFloat("_Mode", 3);
-								//material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-								//material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-								//material.SetInt("_ZWrite", 0);
-								//material.DisableKeyword("_ALPHATEST_ON");
-								//material.EnableKeyword("_ALPHABLEND_ON");
-								//material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-								//material.renderQueue = 3000;
+								material.SetInt ("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+								material.SetInt ("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+								material.SetInt ("_ZWrite", 0);
+								material.DisableKeyword ("_ALPHATEST_ON");
+								material.DisableKeyword ("_ALPHABLEND_ON");
+								material.EnableKeyword ("_ALPHAPREMULTIPLY_ON");
+								material.renderQueue = 3000;
+
+							} else { //OPAQUE
+
+								material.SetInt ("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+								material.SetInt ("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+								material.SetInt ("_ZWrite", 1);
+								material.DisableKeyword ("_ALPHATEST_ON");
+								material.DisableKeyword ("_ALPHABLEND_ON");
+								material.DisableKeyword ("_ALPHAPREMULTIPLY_ON");
+								material.renderQueue = -1;
+
 							}
-							*/
+								
+							if (use_map_color_diffuse) {
+								material.SetTexture ("_MainTex", diffTex);
+							}
+							if (use_map_bump) {
+								material.SetTexture ("_BumpMap", bumpTex);
+							}
+							if (use_map_emit) {
+								material.EnableKeyword ("_EMISSION"); //You must enable the correct Keywords for your required Standard Shader variant
+								material.SetTexture ("_EmissionMap", emissionTex);
+								material.SetColor ("_EmissionColor", new Color (
+									emit_factor,
+									emit_factor,
+									emit_factor
+								));
+							}
+
+							if (use_map_specular) {
+								material.EnableKeyword ("_SPECGLOSSMAP"); //You must enable the correct Keywords for your required Standard Shader variant
+								material.SetTexture ("_SpecGlossMap", specularTex);
+							}
+
+							material.SetFloat ("_GlossMapScale", blenderMaterial.specular_hardness / 511f);
+							material.SetFloat ("_Glossiness", blenderMaterial.specular_hardness / 511f);
+							material.SetFloat ("_Shininess", blenderMaterial.specular_hardness / 511f); //synonmus with _Glossiness if using legacy shaders
+
+							if (!use_map_specular && !use_map_emit) {
+								/*if (blenderMaterial.key.ToLower ().Contains ("hair")) {
+									material.shader = Shader.Find ("Hair/Standard Two Sided Soft Blend");
+									material.SetFloat ("_Cutoff", 0.05f);
+								} else if (
+									blenderMaterial.key.ToLower ().Contains ("eye") && (
+										blenderMaterial.key.ToLower ().Contains ("lash")
+										||
+										blenderMaterial.key.ToLower ().Contains ("brow")
+									)) { //if its hair sprites
+									material.shader = Shader.Find ("Sprites/Default");
+									continue; //it's no longer a stander shader, nothing more to be done
+								}*/
+
+								if (makehumanRenderer.type != MakehumanMeshBoneType.none) {
+									renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+									renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+
+									switch (makehumanRenderer.type) {
+									case MakehumanMeshBoneType.eyeballs:					
+										break;
+									case MakehumanMeshBoneType.eyebrows:
+									case MakehumanMeshBoneType.eyelashes:
+										material.shader = Shader.Find ("Sprites/Default");				
+										break;
+									case MakehumanMeshBoneType.teeth:
+									case MakehumanMeshBoneType.tongue:
+										if (renderer.GetComponent<SkinnedMeshRenderer> ()) {
+											renderer.GetComponent<SkinnedMeshRenderer> ().updateWhenOffscreen = false;
+										}
+										break;
+									}
+
+
+								} else if (false) {//blenderMaterial.key.ToLower ().Contains ("hair")) {
+									material.shader = Shader.Find ("Hair/Standard Two Sided Soft Blend");
+									material.SetFloat ("_Cutoff", 0.05f);
+								} 
+							}
+
+
+
 						}
 
-						//var shaderParams = renderer.gameObject.AddComponent<RendererShaderParams> ();
-						//shaderParams.StoreParams (); //NOW USING RendererShaderParams.StoreAllRenderers (real);
+					} else {
+						/*
+						material.shader = Shader.Find ("Standard (Specular setup)"); //the default fallback shader
+						//THE OLD WAY - USE KEYWORDS IN MATERIAL NAME TO CONTROL SHADER KEYWORDS
+
+						var color222 = material.GetColor ("_Color");
+
+						color222.a = 1.0f; //always do this, just because unity is weird and seemingly random alpha values always appear
+						material.SetColor ("_Color", color222);
+
+						if (material.mainTexture != null) {
+
+							string path = AssetDatabase.GetAssetPath (material.mainTexture);
+							TextureImporter A = (TextureImporter)AssetImporter.GetAtPath (path);
+
+							if (!A.DoesSourceTextureHaveAlpha ()) {//change to opaque https://sassybot.com/blog/swapping-rendering-mode-in-unity-5-0/
+								material.SetInt ("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+								material.SetInt ("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+								material.SetInt ("_ZWrite", 1);
+								material.DisableKeyword ("_ALPHATEST_ON");
+								material.DisableKeyword ("_ALPHABLEND_ON");
+								material.DisableKeyword ("_ALPHAPREMULTIPLY_ON");
+								material.renderQueue = -1;
+							}
+
+							var matTextureName = material.mainTexture.name.ToLower ();
+							//Debug.Log ("MAT NAME " + matTextureName);
+							var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
+							var texName = Path.GetFileNameWithoutExtension (texPath);
+
+							//Debug.Log ("matTextureName" + matTextureName);
+							//Debug.Log ("Texture Path" + texPath);
+
+							Texture specularTex = GetFileByKeywords (texPath, new[] {
+								"_Spec",
+								"_spec",
+								"_Specularity",
+								"_specularity",
+								"_Specular",
+								"_specular"
+							});
+							Texture metallicTex = GetFileByKeywords (texPath, new[] { "_Metallic", "_metallic" });
+
+							if (specularTex != null) {
+								//Debug.Log ("JUST SET SPECULAR SETUP!! " + specularTex);
+								material.shader = Shader.Find ("Standard (Specular setup)");
+								material.EnableKeyword ("_SPECGLOSSMAP"); //You must enable the correct Keywords for your required Standard Shader variant
+								material.SetTexture ("_SpecGlossMap", specularTex);
+								material.SetColor ("_SpecColor", Color.white);
+							} else {
+								if (metallicTex != null) {
+									material.EnableKeyword ("_METALLICGLOSSMAP"); //You must enable the correct Keywords for your required Standard Shader variant
+									material.SetTexture ("_MetallicGlossMap", metallicTex);
+								}
+							}
+
+							Texture emissionTex = GetFileByKeywords (texPath, new[] { "_Emission", "_emission" });
+							if (emissionTex != null) {
+								material.EnableKeyword ("_EMISSION"); //You must enable the correct Keywords for your required Standard Shader variant
+								material.SetTexture ("_EmissionMap", emissionTex);
+								material.SetColor ("_EmissionColor", Color.white);
+							}
+
+							if (specularTex == null && emissionTex == null) {
+								if (matTextureName.Contains ("_hair")) {
+									material.shader = Shader.Find ("Custom/Standard Two Sided Soft Blend");
+									material.SetFloat ("_Cutoff", 0.05f);
+								} else if (
+									matTextureName.Contains ("eyelash") ||
+									matTextureName.Contains ("eyebrow")) { //if its hair sprites
+									material.shader = Shader.Find ("Sprites/Default");
+									continue; //it's no longer a stander shader, nothing more to be done
+								}
+							}
+						}
+
+
+						if (material.HasProperty ("_Mode") && material.GetFloat ("_Mode").Equals (3)) { //if the exported material has transparency
+							//Debug.Log ("MODE 3 " + material);
+							if (color222.a >= 0.9f) { //because blender/unity are weird, and setting blender to 1 results in unity using opaque mode
+								color222.a = 1.0f;
+								material.SetColor ("_Color", color222);
+							}
+							//material.SetFloat("_Mode", 3);
+							//material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+							//material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+							//material.SetInt("_ZWrite", 0);
+							//material.DisableKeyword("_ALPHATEST_ON");
+							//material.EnableKeyword("_ALPHABLEND_ON");
+							//material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+							//material.renderQueue = 3000;
+						}
+						*/
 					}
+
+					//var shaderParams = renderer.gameObject.AddComponent<RendererShaderParams> ();
+					//shaderParams.StoreParams (); //NOW USING RendererShaderParams.StoreAllRenderers (real);
+				
 				}
 
 
@@ -891,7 +1044,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 						if (Directory.Exists (assetDestFolder)) {
 							FileUtil.DeleteFileOrDirectory( Path.Combine (assetDestFolder, assetFileName));
-							FileUtil.MoveFileOrDirectory(assetPath, Path.Combine (assetDestFolder, assetFileName));
+							File.Move(assetPath, Path.Combine (assetDestFolder, assetFileName));
 
 							var thumbnailFolderAbs = Path.Combine (assetDestFolder, "thumbnails");
 
@@ -967,7 +1120,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 	static void TakePortraitPictures(string assetFileName, List<GameObject> rootObjs, string destFolder) {
 
-		string prefabPath = prefabsFolder + Path.GetFileNameWithoutExtension(assetFileName) + ".prefab";
+		string prefabPath = Path.Combine(prefabsFolder, Path.GetFileNameWithoutExtension(assetFileName) + ".prefab");
 
 		UnityEngine.Object prefab = AssetDatabase.LoadAssetAtPath(prefabPath, typeof(GameObject));
 
