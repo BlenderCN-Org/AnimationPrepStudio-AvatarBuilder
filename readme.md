@@ -4,16 +4,16 @@ This project contains tools which help automate the process of converting .blend
 
 ## Getting Started
 
-![Test Image 4](https://i.imgur.com/C5Nyf68.png)
+![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/menu.png)
 
-![Test Image 4](https://i.imgur.com/PUGtvHI.png)
+![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/builder.png)
 * First be sure that the `Blender Application` field points to the valid blender.exe installed on your PC (V2.79).
 * Then click the "Import Prop Model" button to locate the .blend file containing the model you would like to import.
 
-![Test Image 4](https://i.imgur.com/cTkpXMl.png)
+![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/select.png)
 * The automation should do most of the work creating the assetbundle.
 
-![Test Image 4](https://i.imgur.com/DFZ3tmv.png)
+![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/asset.png)
 ___
 Copy the entire folder:
 
