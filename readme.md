@@ -1,4 +1,4 @@
-# Animation Prep Studio (Prop Builder)
+# Animation Prep Studio (Avatar Builder)
 
 This project contains tools which help automate the process of converting .blend models into avatar assets compatible with [Animation Prep Studio](https://drive.google.com/open?id=17MyFQ75dfBuaf5IL4ba-4BH8klWj6-5r "Animation Prep Studio Direct Download"). The builder tool can import .blend files which were created using blender 2.79. After successful import there will be a new asset folder which you simply drag and drop into the `VR_MocapAssets` folder to make it available in the game.
 
@@ -8,7 +8,7 @@ This project contains tools which help automate the process of converting .blend
 
 ![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/builder.png)
 * First be sure that the `Blender Application` field points to the valid blender.exe installed on your PC (V2.79).
-* Then click the "Import Prop Model" button to locate the .blend file containing the model you would like to import.
+* Then click the "Import Avatar Model" button to locate the .blend file containing the model you would like to import.
 
 ![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/select.png)
 * The automation should do most of the work creating the assetbundle.
