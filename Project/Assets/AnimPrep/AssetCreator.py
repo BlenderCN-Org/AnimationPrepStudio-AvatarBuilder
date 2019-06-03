@@ -318,6 +318,10 @@ bpy.ops.export_scene.fbx(
 
 bpy.data.use_autopack = True
 bpy.ops.file.pack_all()
+
+bpy.ops.wm.save_as_mainfile(filepath=bpy.data.filepath)
+print("\nSaved Done!")
+
 """
 
 blenderscript_prop = r"""
@@ -432,6 +436,9 @@ bpy.ops.export_scene.fbx(
 
 bpy.data.use_autopack = True
 bpy.ops.file.pack_all()
+
+bpy.ops.wm.save_as_mainfile(filepath=bpy.data.filepath)
+print("\nSaved Done!")
 
 """
 
@@ -893,8 +900,6 @@ AutoNode()
 AutoNodeOff()
 print("\nMaterial Nodes Created Successfully!")
 
-bpy.ops.wm.save_as_mainfile(filepath=bpy.data.filepath)
-print("\nSaved Done!")
 """
 
 #Theme colors
