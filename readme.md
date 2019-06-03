@@ -21,7 +21,7 @@ Copy the entire folder:
 
 And paste it into:
 
-`C:\Users\myusername\AppData\LocalLow\Animation Prep Studios\Animation Prep Studio\VR_ImportObjs`
+`C:\Users\myusername\AppData\LocalLow\Animation Prep Studios\AnimPrep\VR_ImportObjs`
 ___
 ### Installing
 
