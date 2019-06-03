@@ -438,7 +438,6 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 	
 			if (assetPath.StartsWith (processingFolder)) {//Looking for the copied .fbx file that resides in the projects processing/prefab folder
-				Debug.Log("1");
 				if (!assetPath.EndsWith (".fbx", StringComparison.OrdinalIgnoreCase)) {//only check if .fbx is in the processing folder
 					continue;
 				}
@@ -520,10 +519,10 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 				List<string> bonesList = new List<string> ();
 
 				//foreach (Renderer renderer in childrenRenderers) {
-				Debug.Log("2");
+
 				for (int i = 0; i < childrenRenderers.Length; i++) {
 					Renderer renderer = childrenRenderers [i];
-					Debug.Log("renderer " + renderer);
+
 					makehumanRenderers [i] = new MakehumanRenderer {
 						renderer = renderer,
 						type = MakehumanMeshBoneType.none
@@ -557,7 +556,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 							"eye.R",
 							"eye.L"
 						}.All (n => bonesList.Contains (n))) {
-						Debug.Log ("I THINK THIS IS AN EYE");
+						//Debug.Log ("I THINK THIS IS AN EYE");
 						makehumanRenderers [i].type = MakehumanMeshBoneType.eyeballs;
 						continue;
 					}
@@ -571,7 +570,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 							"orbicularis04.R",
 							"orbicularis04.L"
 						}.All (n => bonesList.Contains (n))) {
-						Debug.Log ("I THINK THIS IS AN EYELASH");
+						//Debug.Log ("I THINK THIS IS AN EYELASH");
 						makehumanRenderers [i].type = MakehumanMeshBoneType.eyelashes;
 						continue;
 					}
@@ -583,7 +582,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 							"oculi01.R",
 							"oculi01.L"
 						}.All (n => bonesList.Contains (n))) {
-						Debug.Log ("I THINK THIS IS AN EYEBROW");
+						//Debug.Log ("I THINK THIS IS AN EYEBROW");
 						makehumanRenderers [i].type = MakehumanMeshBoneType.eyebrows;
 						continue;
 					}
@@ -594,7 +593,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 							"jaw",
 							"head"
 						}.All (n => bonesList.Contains (n))) {
-						Debug.Log ("I THINK THIS IS TEETH");
+						//Debug.Log ("I THINK THIS IS TEETH");
 						makehumanRenderers [i].type = MakehumanMeshBoneType.teeth;
 						continue;
 					}
@@ -613,7 +612,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 							"tongue06.R",
 							"tongue05.R",
 						}.All (n => bonesList.Contains (n))) {
-						Debug.Log ("I THINK THIS IS A TONGUE");
+						//Debug.Log ("I THINK THIS IS A TONGUE");
 						makehumanRenderers [i].type = MakehumanMeshBoneType.tongue;
 						continue;
 					}
@@ -624,14 +623,9 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 				//foreach (Renderer renderer in childrenRenderers) {
 				foreach (MakehumanRenderer makehumanRenderer in makehumanRenderers) {
 					var renderer = makehumanRenderer.renderer;
-					Debug.Log("renderer " + renderer);
-
 					if (renderer == null) {
 						continue;
 					}
-
-					Debug.Log("renderer? " + renderer);
-
 
 					renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
 					renderer.receiveShadows = true;
