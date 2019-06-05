@@ -21,7 +21,7 @@ Copy the entire folder:
 
 And paste it into:
 
-`C:\Users\myusername\AppData\LocalLow\Animation Prep Studios\AnimPrep\VR_ImportObjs`
+`C:\Users\[User]\AppData\LocalLow\Animation Prep Studios\AnimPrep\VR_MocapAssets`
 ___
 ### Installing
 
