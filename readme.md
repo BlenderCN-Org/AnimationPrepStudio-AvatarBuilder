@@ -6,8 +6,8 @@ This project contains tools which help automate the process of converting .blend
 
 [![Youtube Tutorial](https://img.youtube.com/vi/gRIz8tc7ds8/0.jpg)](https://www.youtube.com/watch?v=gRIz8tc7ds8)
 
-The above is a video tutorial explains how to automate the process of creating custom avatars from Makehuman -> Blender models.
-
+Video explaining how to create custom avatars from Makehuman -> Blender models.
+___
 Below is the documentation describing some of the steps required to trans
 ![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/menu.png)
 
