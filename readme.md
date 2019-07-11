@@ -4,6 +4,8 @@ This project contains tools which help automate the process of converting .blend
 
 ## Getting Started
 
+[![Youtube Tutorial](https://img.youtube.com/vi/gRIz8tc7ds8/0.jpg)](https://www.youtube.com/watch?v=gRIz8tc7ds8)
+
 ![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/menu.png)
 
 ![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/builder.png)
