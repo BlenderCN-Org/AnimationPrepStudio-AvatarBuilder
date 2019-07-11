@@ -71,7 +71,7 @@ using System.Threading;
 		customLabel.normal.textColor = new Color(0.5f,0.5f,0.5f);
 		customLabel.fontStyle = FontStyle.Bold;
 
-		GUILayout.Label("Version: 1.0.1", customLabel);
+		GUILayout.Label("Version: 1.0.2", customLabel);
 		EditorGUILayout.EndVertical();
 
 		customLabel = new GUIStyle ("Button");

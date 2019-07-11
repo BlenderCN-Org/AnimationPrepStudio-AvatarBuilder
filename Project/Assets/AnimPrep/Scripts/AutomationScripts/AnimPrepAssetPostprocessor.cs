@@ -139,6 +139,10 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 			importer.importMaterials = true;
 			importer.materialLocation = ModelImporterMaterialLocation.External;
+
+			//Blender's normals are wrong when imported into unity causing artifacts in whole body when using blendshapes, use calculate to force unity to make the normals correct.
+			importer.importNormals = ModelImporterNormals.Calculate; 
+			importer.importBlendShapeNormals = ModelImporterNormals.Calculate;
 		}
 	}
 
