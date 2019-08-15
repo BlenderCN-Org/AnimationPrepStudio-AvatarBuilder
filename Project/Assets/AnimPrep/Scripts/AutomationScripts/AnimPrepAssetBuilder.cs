@@ -11,6 +11,8 @@ using System.Threading;
 
 	Texture2D logotex;
 
+	public static string[] getCharacterTypesArray = System.Enum.GetNames(typeof(ArmatureLinker.CharacterType));
+
 	//============================================
 	[MenuItem("AnimPrep/Avatar Importer")]
 	static void Init()
@@ -44,6 +46,8 @@ using System.Threading;
 	bool blenderAppExists = false;
 
 
+	int characterType = 0;
+
 	void OnGUI()
 	{
 
@@ -74,15 +78,42 @@ using System.Threading;
 		GUILayout.Label("Version: 1.0.2", customLabel);
 		EditorGUILayout.EndVertical();
 
+
+
 		customLabel = new GUIStyle ("Button");
 		customLabel.alignment = TextAnchor.MiddleCenter;
 		customLabel.fontSize = 14;
 		customLabel.normal.textColor = new Color(0.0f,0.0f,1.0f);
 		customLabel.fontStyle = FontStyle.Bold;
 
+
 		EditorGUILayout.LabelField("Select the .blend file to process:");
+		customLabel = new GUIStyle ("Button");
+		customLabel.alignment = TextAnchor.MiddleCenter;
+		customLabel.fontSize = 10;
+		customLabel.normal.textColor = new Color(0.2f,0.2f,0.2f);
+		customLabel.fontStyle = FontStyle.Italic;
+		customLabel.fixedWidth = 100;
+
+
+		customLabel = new GUIStyle ("Button");
+		customLabel.alignment = TextAnchor.MiddleCenter;
+		customLabel.fontSize = 14;
+		customLabel.normal.textColor = new Color(0.0f,0.0f,1.0f);
+		customLabel.fontStyle = FontStyle.Bold;
+
 
 		if (GUILayout.Button("Import Avatar Model", customLabel)) {
+
+			if (characterType == (int)ArmatureLinker.CharacterType.DEFAULT) {
+				var enumName = System.Enum.GetName (typeof(ArmatureLinker.CharacterType), ArmatureLinker.CharacterType.DEFAULT);
+				Debug.LogError (string.Format("You must specify a character type (\"{0}\" is not a valid selection)", enumName));
+				EditorUtility.DisplayDialog("Error",
+					string.Format("Character type: \"{0}\" is not a valid!\n\nPlease select a desired character type first.", enumName),
+					"Ok");
+				
+				return;
+			}
 
 			if (!string.IsNullOrEmpty (blenderAppPath) && !File.Exists (blenderAppPath)) {
 				EditorUtility.DisplayDialog("Blender Application Is Not Set",
@@ -92,12 +123,13 @@ using System.Threading;
 
 			AssetDatabase.RemoveUnusedAssetBundleNames ();
 
-			var modelPath = EditorUtility.OpenFilePanel("Load model", modelPathLast, "blend,fbx");
+			var modelPath = EditorUtility.OpenFilePanel(string.Format("Load {0} model", getCharacterTypesArray[characterType].ToLower() ), modelPathLast, "blend");
 
 			if (!string.IsNullOrEmpty (modelPath)) {
+
 				modelPathLast = Path.GetDirectoryName(modelPath);
 				if (Path.GetExtension (modelPath).Equals (".blend")) {
-					if (!RunBatch (AnimPrepAssetPostprocessor.assetBundleVariant, modelPath, blenderAppPath)) {
+					if (!RunBatch (AnimPrepAssetPostprocessor.AssetBundleVariant, modelPath, blenderAppPath)) {
 						EditorUtility.DisplayDialog("No AssetCreator.exe Tool",
 							"Please ensure the AssetCreator.exe tool in located in the AnimPrep directory.", "OK");
 						return;
@@ -107,7 +139,7 @@ using System.Threading;
 
 					modelPath = Path.Combine (
 						Path.Combine (
-							Path.GetDirectoryName (modelPath), baseName.ToLower() + string.Format("_{0}", AnimPrepAssetPostprocessor.assetBundleVariant.ToLower())
+							Path.GetDirectoryName (modelPath), baseName.ToLower() + string.Format("_{0}", AnimPrepAssetPostprocessor.AssetBundleVariant.ToLower())
 						),
 						baseName + ".fbx"
 					);
@@ -143,7 +175,7 @@ using System.Threading;
 				foreach (FileInfo f in modelsInfo) {
 					var to = Path.Combine (
 						processingPath,
-						AnimPrepAssetPostprocessor.assetBundleVariant + 
+						AnimPrepAssetPostprocessor.AssetBundleVariant + 
 						AnimPrepAssetPostprocessor.templateSeperator +//"$"
 						uid + 
 						AnimPrepAssetPostprocessor.templateSeperator +//"$"
@@ -176,6 +208,7 @@ using System.Threading;
 
 				AnimPrepAssetPostprocessor.AssetBundleUserJson userPrefs = new AnimPrepAssetPostprocessor.AssetBundleUserJson () {
 					created = System.DateTime.UtcNow,
+					variantTag = getCharacterTypesArray[characterType],//use the index of the users selection to get then enum name from the chracter types //  AnimPrepAssetPostprocessor.ReallusionAssetVariantTag,
 					//user = userName,
 					//uploadFolder = uploadName,
 					characterFolder = Path.GetDirectoryName(modelPath)
@@ -194,10 +227,20 @@ using System.Threading;
 
 				AssetDatabase.Refresh ();
 
+				Debug.Log (string.Format("Created new {0} character!\nPress \"Append Prefabs To Scene\" button to see the newly created character.", getCharacterTypesArray[characterType].ToLower()));
 			}
 		}
+		GUILayout.BeginHorizontal();
+
+
+		characterType = EditorGUILayout.Popup("Character Type:", characterType, getCharacterTypesArray, GUILayout.MinWidth (100)); 
+
+
+		GUILayout.EndHorizontal();
 
 		EditorGUILayout.Space();
+
+
 
 		customLabel = new GUIStyle ("Button");
 		customLabel.alignment = TextAnchor.MiddleCenter;
@@ -431,7 +474,7 @@ using System.Threading;
 			int ExitCode = myProcess.ExitCode;
 			return true;
 		} catch (System.Exception e){
-			Debug.Log(e);        
+			Debug.Log(e);
 		}
 		return false;
 	}

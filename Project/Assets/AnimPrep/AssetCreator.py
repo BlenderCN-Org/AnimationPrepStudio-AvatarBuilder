@@ -4,7 +4,7 @@ __credits__ = [""]
 __license__ = "GPL"
 __version__ = "1.0.1"
 __title__ = 'AnimPrep Asset Project Creator'
-import os, sys, imghdr, json, time, pickle
+import os, sys, json, time, pickle
 
 from shutil import copyfile
 
@@ -12,12 +12,14 @@ import traceback
 
 import subprocess
 
-from PIL import ImageEnhance, ImageTk, Image
+from PIL import ImageEnhance, ImageTk, Image, ImageDraw
 
 from distutils.dir_util import copy_tree
 
 from Tkinter import Tk, StringVar, Button, Frame, OptionMenu, Scrollbar, Text, Entry, Label, BOTH, LEFT, RIGHT, TOP, BOTTOM, END, SUNKEN, DISABLED, NORMAL, INSERT, YES, NO, Y, X, N, W, S, E
 import tkFileDialog
+
+import shutil
 
 from tempfile import mkdtemp
 
@@ -34,6 +36,7 @@ blenderscript_avatar = r"""
 
 # !/usr/bin/env python2.7
 import bpy, json, os, re
+from mathutils import *
 
 bpy.ops.file.unpack_all(method='WRITE_LOCAL')
 
@@ -78,7 +81,7 @@ for m in bpy.data.materials:
 		continue
 
 	used_texture_slots = []
-	for slot in m.texture_slots:
+	for i, slot in enumerate(m.texture_slots):
 
 		if slot is not None and hasattr(slot.texture, 'image'):
 			filename = slot.texture.image.filepath #.encode('ascii','ignore').decode()  # the filename and extension of the image, strip dir info
@@ -86,6 +89,8 @@ for m in bpy.data.materials:
 
 			texture_data = {
 				"filename": filename,
+				"material": m.name,
+				"slot": i,
 
 				# "use_map_color_diffuse" : texture_data.image.use_map_color_diffuse,
 				# "diffuse_color_factor" : texture_data.image.diffuse_color_factor,
@@ -101,6 +106,7 @@ for m in bpy.data.materials:
 				"use_map_emit": slot.use_map_emit,
 				"emit_factor": slot.emit_factor,
 
+				"use_map_alpha": slot.use_map_alpha,
 				"alpha_factor": slot.alpha_factor,
 			}
 
@@ -135,6 +141,80 @@ for m in bpy.data.materials:
 boneDict = {}
 
 if armature is not None:
+
+
+
+	#Create the rest pose used for the bvh export reference pose
+	previousAction = armature.animation_data.action
+
+	armature.animation_data_create()
+	armature.animation_data.action = bpy.data.actions.new(name="RestPose")
+
+	for bone in armature.data.bones:
+		bonename = bone.name
+
+		for i in range(3):
+			data_path = 'pose.bones["%s"].location'%(bonename)
+
+			fcu_z = armature.animation_data.action.fcurves.new(data_path=data_path, index=i)
+			fcu_z.keyframe_points.add(1)
+			fcu_z.keyframe_points[0].co = 0.0, 0.0
+
+		for i in range(3):
+			data_path = 'pose.bones["%s"].scale'%(bonename)
+
+			fcu_z = armature.animation_data.action.fcurves.new(data_path=data_path, index=i)
+			fcu_z.keyframe_points.add(1)
+			fcu_z.keyframe_points[0].co = 0.0, 1.0
+
+
+		for i in range(4):
+			data_path = 'pose.bones["%s"].rotation_quaternion'%(bonename)
+
+			fcu_z = armature.animation_data.action.fcurves.new(data_path=data_path, index=i)
+			fcu_z.keyframe_points.add(1)
+			fcu_z.keyframe_points[0].co = 0.0, 1.0 if i is 0 else 0.0
+
+	armature.animation_data.action = previousAction #revert back to the a-pose action
+
+
+	#apply the aramture scale as 1,1,1 then fix Rellusion pose offsets caused by applying the new scale
+	armature.select = True
+	bpy.context.scene.objects.active = armature
+
+	for bone in armature.pose.bones:
+		#all rellusion characters have twist bones, they look strange after applying scale (unless they are completely reset)
+		if "Twist" in bone.name:
+			bone.location = Vector( (0,0,0) )
+			bone.rotation_quaternion = Quaternion( (0, 0, 0), 0 )
+			bone.scale = Vector( (1, 1, 1) )
+			bone.keyframe_insert(data_path="location")#also make sure to update the keyframes
+			bone.keyframe_insert(data_path="rotation_quaternion")
+			bone.keyframe_insert(data_path="scale")
+
+	hipBoneIndex = 1 #CC_Base_Hip
+
+	#First save the hip's world position
+	pose_bone = armature.pose.bones[hipBoneIndex]
+	obj = pose_bone.id_data
+	matrix_final = obj.matrix_world * pose_bone.matrix
+
+	#apply the armature scale
+	bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+	bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+	bpy.ops.object.mode_set(mode='POSE', toggle=False)
+
+	#move the hip back to where it belongs
+	matrix_reverse = obj.matrix_world * matrix_final
+	pose_bone.matrix = matrix_reverse
+	pose_bone.scale = Vector((1,1,1))
+	pose_bone.keyframe_insert(data_path="location")
+
+
+
+
+
+
 	if not hasattr(armature.animation_data, "drivers"):
 		print("ERROR! THERE WERE NO FACE RIG DRIVERS. You must import your .mhx2 models with \"Face Shapes\" and \"Face Shapes Drivers\" checkboxes checked!!!")
 		exit()
@@ -143,7 +223,7 @@ if armature is not None:
 	highestBonePoint = 0
 
 	for bone in armature.pose.bones:
-		highestBonePoint = max(highestBonePoint, bone.head.z)
+		highestBonePoint = max(highestBonePoint, bone.head.z * armature.scale.z)
 		# iterate over all drivers now
 		# this should give better performance than the other way around
 		# as most armatures have more bones than drivers
@@ -321,7 +401,6 @@ bpy.ops.file.pack_all()
 
 bpy.ops.wm.save_as_mainfile(filepath=bpy.data.filepath)
 print("\nSaved Done!")
-
 """
 
 blenderscript_prop = r"""
@@ -364,6 +443,7 @@ for m in bpy.data.materials:
 				"use_map_emit": slot.use_map_emit,
 				"emit_factor": slot.emit_factor,
 
+				"use_map_alpha": slot.use_map_alpha,
 				"alpha_factor": slot.alpha_factor,
 			}
 
@@ -542,10 +622,10 @@ def BakingText(tex,mode):
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.uv.unwrap()
 
-    for n in bpy.data.images:
+    for n in bpy.data.downloadedimages:
         if n.name=='TMP_BAKING':
             n.user_clear()
-            bpy.data.images.remove(n)
+            bpy.data.downloadedimages.remove(n)
 
 
     if mode == "ALPHA" and tex.texture.type=='IMAGE':
@@ -555,10 +635,10 @@ def BakingText(tex,mode):
         sizeX=600
         sizeY=600
     bpy.ops.image.new(name="TMP_BAKING", width=sizeX, height=sizeY, color=(0.0, 0.0, 0.0, 1.0), alpha=True, uv_test_grid=False, float=False)
-    bpy.data.screens['UV Editing'].areas[1].spaces[0].image = bpy.data.images["TMP_BAKING"]
+    bpy.data.screens['UV Editing'].areas[1].spaces[0].image = bpy.data.downloadedimages["TMP_BAKING"]
     sc.render.engine='BLENDER_RENDER'
-    img = bpy.data.images["TMP_BAKING"]
-    img=bpy.data.images.get("TMP_BAKING")
+    img = bpy.data.downloadedimages["TMP_BAKING"]
+    img=bpy.data.downloadedimages.get("TMP_BAKING")
     img.file_format = "JPEG"
     if mode == "ALPHA" and tex.texture.type=='IMAGE':
         img.filepath_raw = tex.texture.image.filepath + "_BAKING.jpg"
@@ -576,7 +656,7 @@ def BakingText(tex,mode):
     bpy.ops.object.select_pattern(extend=False, pattern=Robj.name, case_sensitive=False)
     sc.objects.active = Robj
     img.user_clear()
-    bpy.data.images.remove(img)
+    bpy.data.downloadedimages.remove(img)
     bpy.data.materials.remove(tmat)
 
     print('INFO : end Bake ' + img.filepath_raw )
@@ -783,7 +863,7 @@ def AutoNode():
                                 if not os.path.exists(bpy.path.abspath(tex.texture.name + "_PTEXT.jpg")) or sc.EXTRACT_OW:
                                     BakingText(tex,'PTEX')
 
-                                img=bpy.data.images.load(tex.texture.name + "_PTEXT.jpg")
+                                img=bpy.data.downloadedimages.load(tex.texture.name + "_PTEXT.jpg")
                                 shtext = TreeNodes.nodes.new('ShaderNodeTexImage')
                                 shtext.location = -200,400
                                 shtext.image=img
@@ -938,7 +1018,14 @@ def ProcessModelFile(context, filepath, blenderpath, LogMessage):
 
 	if os.path.isdir(source_textures_directory):
 		LogMessage("Found some source textures, copying folder now.")
-		copy_tree (source_textures_directory, textures_directory)
+		#copy_tree (source_textures_directory, textures_directory)
+
+		src_files = os.listdir(source_textures_directory)
+		for file_name in src_files:
+		    full_file_name = os.path.join(source_textures_directory, file_name)
+		    if os.path.isfile(full_file_name):
+		        shutil.copy(full_file_name, textures_directory)
+
 	else:
 		LogMessage("Could not find a \"Textures\" directory for this model.", 'warning')
 
@@ -982,7 +1069,8 @@ def ProcessModelFile(context, filepath, blenderpath, LogMessage):
 			]), 'grayed') #logs all the stdout paramenters to this tkinter scrolltext
 		raise
 	finally:
-		os.rmdir(temp_dir)
+		#os.rmdir(temp_dir) #note that rmdir fails unless it's empty, which is why rmtree is so convenient:
+		shutil.rmtree(temp_dir)# remove everything
 		pass
 
 	#LogMessage("Deleting temp .blend file from project directory.")
@@ -1001,8 +1089,9 @@ def ProcessModelFile(context, filepath, blenderpath, LogMessage):
 
 
 	LogMessage("Preparing to process image textures.")
+
 	def ProcessImages():
-		imageCounter = 0 #total number of images processed (if still zero when done, means no images were processed)
+		imageCounter = 0 #total number of downloadedimages processed (if still zero when done, means no downloadedimages were processed)
 
 		for folder, subs, files in os.walk(textures_directory):
 			for filename in files:
@@ -1011,63 +1100,113 @@ def ProcessModelFile(context, filepath, blenderpath, LogMessage):
 				if (not os.path.isfile(file_path)):#how to check if a file is a directory - https://stackoverflow.com/a/3204819/3961748
 					continue
 
-				if imghdr.what(file_path) is not None: #check if a file is a valid image file? - https://stackoverflow.com/a/902779/3961748
-					LogMessage("Optimizing image: " + file_path)
+				try:
+					Image.open(file_path).verify()
+				except Exception as e:
+					LogMessage('Invalid image ' + str(e), 'error')
+					if file_path.lower().endswith(".fbx"):
+						pass
+					elif os.path.basename(file_path) == "blender.json":
+						pass #skip deleting the materials.json file that might have been created from BuildCharacterExportJson
+					else:
+						LogMessage("Deleting file: " + file_path, 'grayed')
+						os.remove(file_path)#it is not a texture or the .fbx (so delete this file)
+					continue
 
-					im = Image.open(file_path)
+				#if im is not None:# or imghdr.what(file_path) is not None: #check if a file is a valid image file? - https://stackoverflow.com/a/902779/3961748
+				LogMessage("Optimizing image: " + file_path)
 
-					size = 1024, 1024 #the maximum size of the texture images
-					im.thumbnail(size, Image.ANTIALIAS)
+				im = Image.open(file_path)
 
-					im.convert('P') #prevents strange error: "ValueError: unknown raw mode" - known bug: https://github.com/python-pillow/Pillow/issues/646
+				size = 1024, 1024 #the maximum size of the texture downloadedimages
+				im.thumbnail(size, Image.ANTIALIAS)
 
+				im.convert('P') #prevents strange error: "ValueError: unknown raw mode" - known bug: https://github.com/python-pillow/Pillow/issues/646
+
+				#TODO For Unity - if use_map_alpha is true for this image, then need to seek for any images in the same material/slot that uses diffuse use_map_color_diffuse and apply the alpha mask
+				for item in materialsJson:
+					for slot in item['texture_slots']:
+						if slot['filename'] == filename:
+							if slot['use_map_specular']:
+								im = ImageEnhance.Brightness(im).enhance(0.5) #default values are way too high for Standard shader so multiply by 0.5
+								LogMessage("Optimizing for \"use_map_specular\"", 'notice')
+							if slot['use_map_alpha']:
+								for subitem in materialsJson: #search for a corresponding diffuse/color image to apply the alpha mask to
+									for subslot in subitem['texture_slots']:
+										if subslot['material'] == slot['material']:
+											if subslot['slot'] != slot['slot']:
+												if subslot['use_map_color_diffuse'] is True:
+
+													sub_file_path = os.path.join(folder, subslot['filename']) #path to the diffuse image
+													diff = Image.open(sub_file_path) #the diffuse image
+
+													if diff is not None:
+														mask = im.copy()
+
+														if diff.size > mask.size:
+															mask = mask.resize(diff.size, Image.ANTIALIAS)
+														else:
+															diff = diff.resize(mask.size, Image.ANTIALIAS)
+
+														mask.convert('1')
+														mask.mode = "1"
+
+														diff.putalpha(mask)
+
+														os.path.splitext(subslot['filename'])
+
+														newFileName = os.path.splitext(subslot['filename'])[0] + '.png'
+														subitem['texture'] = subslot['filename'] = newFileName
+														subslot['use_map_alpha'] = True #modify this so that the new diffuse image will use alpha when imported into Unity
+
+														os.remove(sub_file_path)
+
+														savePath = os.path.join(folder, newFileName)
+														diff.save(savePath)
+
+														LogMessage("Created a new alpha masked composite image: %s " % subslot['filename'])
+
+
+				if (im.mode == "RGBA"):#check if the alpha is being used in this image by looking at if the alpha pixels overlay colors other than the default empty color
+
+					imageUpdated = False
 					for item in materialsJson:
-						for slot in item['texture_slots']:
-							if slot['filename'] == filename:
-								if slot['use_map_specular']:
-									im = ImageEnhance.Brightness(im).enhance(0.5) #default values are way too high for Standard shader so multiply by 0.5
-									LogMessage("Optimizing for \"use_map_specular\"", 'notice')
+						if (item['texture'] == filename):
 
-					if (im.mode == "RGBA"):#check if the alpha is being used in this image by looking at if the alpha pixels overlay colors other than the default empty color
+							if item['texture'] in alphaTexturesList:
+								continue #some object has already set it to use alpha, thus it should remain as such even if another object says it is not transpareant
+							elif item['use_transparency']:
+								alphaTexturesList.append(item['texture'])
 
-						imageUpdated = False
-						for item in materialsJson:
-							if (item['texture'] == filename):
+							im.mode = "RGBA" if item['use_transparency'] else "RGB"
 
-								if item['texture'] in alphaTexturesList:
-									continue #some object has already set it to use alpha, thus it should remain as such even if another object says it is not transpareant
-								elif item['use_transparency']:
-									alphaTexturesList.append(item['texture'])
+							imageUpdated = True
+					if not imageUpdated:
+						im.mode = "RGB"
 
-								im.mode = "RGBA" if item['use_transparency'] else "RGB"
+				LogMessage("SIZE W:%s H:%s MODE:%s" % (im.width, im.height, im.mode))
 
-								imageUpdated = True
-						if not imageUpdated:
-							im.mode = "RGB"
+				save_path = os.path.join(textures_directory, filename)
 
-					LogMessage("SIZE W:%s H:%s MODE:%s" % (im.width, im.height, im.mode))
+				im.save(save_path)
 
-					save_path = os.path.join(textures_directory, filename)
+				imageCounter += 1 #was a valid image, so count it
 
-					im.save(save_path)
 
-					imageCounter += 1 #was a valid image, so count it
-
-				elif file_path.lower().endswith(".fbx"):
-					pass
-				elif os.path.basename(file_path) == "blender.json":
-					pass #skip deleting the materials.json file that might have been created from BuildCharacterExportJson
-				else:
-					os.remove(file_path)#it is not a texture or the .fbx (so delete this file)
 		return imageCounter
 
 
 	imageCounter = ProcessImages()
+
+	with open(blender_json_path, 'w') as outfile:
+		json.dump(blenderJson, outfile) #update the blender.json file with any modified values
+		LogMessage("Re-saved blender.json file if there were any modified values.")
+
 	if imageCounter is 0 and False:#check if any textures exist
 		if(os.path.isdir(textures_directory)):
 			LogMessage("No Textures Were Packed! Did you forget to enable the \"Automatically pack into .blend\" checkbox?", 'warning')
 		else:
-			LogMessage("Textures directory was not copied and no images were processed.", 'warning')
+			LogMessage("Textures directory was not copied and no downloadedimages were processed.", 'warning')
 		#LogMessage("Attempting to copy textures from source directoy")
 		#source_textures_directory = os.path.join(source_directory, "textures")
 
@@ -1078,11 +1217,11 @@ def ProcessModelFile(context, filepath, blenderpath, LogMessage):
 		#	if imageCounter is 0:#check if any textures exist
 		#		LogMessage("Im sorry, but still no textures were processed.", 'warning')
 		#	else:
-		#		LogMessage("Finished processing %d images." % imageCounter)
+		#		LogMessage("Finished processing %d downloadedimages." % imageCounter)
 		#else:
 		#	LogMessage("The path: \"%s\" does not exist." % source_textures_directory, 'warning')
 	else:
-		LogMessage("Finished processing %d images." % imageCounter)
+		LogMessage("Finished processing %d downloadedimages." % imageCounter)
 
 	LogMessage("Creating readme.txt")
 

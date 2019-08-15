@@ -20,7 +20,7 @@ public class BuildAvatar : MonoBehaviour {
 		}
 	}
 
-	public void CreateEmptyContianers(string modelAssetName) {
+	public void CreateEmptyContianers(string modelAssetName, ArmatureLinker.CharacterType characterType) {
 
 		GameObject metarig = null;
 		GameObject avatarMesh = null;
@@ -39,12 +39,30 @@ public class BuildAvatar : MonoBehaviour {
 				var child = transform.GetChild (i);
 				allChildren.Add (child);
 			}
-			foreach (Transform child in allChildren) {
 
+			string rootBoneName;
+
+			switch (characterType) {
+			case ArmatureLinker.CharacterType.REALLUSION:
+				rootBoneName = "cc_base_boneroot";
+				break;
+			case ArmatureLinker.CharacterType.MAKEHUMAN:
+			case ArmatureLinker.CharacterType.DEFAULT:
+				rootBoneName = "root";
+				break;
+			default:
+				Debug.LogError ("Non-templateType detected - unable to determine what to use for root bone naming!");
+				return;
+			}
+
+			foreach (Transform child in allChildren) {
+				
 				if (child.GetComponent<SkinnedMeshRenderer> ()) {
 					child.transform.parent = avatarMesh.transform;
 				} else {
-					if (child.childCount > 0 && child.GetChild (0).name.ToLower ().Equals ("root")) {
+
+
+					if (child.childCount > 0 && child.GetChild (0).name.ToLower ().Equals (rootBoneName)) {//cc_base_boneroot")) {
 						metarig = child.gameObject;//.GetChild (0).gameObject;// child.gameObject;
 
 						//metarig.transform.parent = transform;
@@ -79,7 +97,7 @@ public class BuildAvatar : MonoBehaviour {
 
 		UpdateMyFormatedName (modelAssetName);
 
-		linker.PopulateFields (avatarMesh);
+		linker.PopulateFields (avatarMesh, characterType);
 	}
 
 
