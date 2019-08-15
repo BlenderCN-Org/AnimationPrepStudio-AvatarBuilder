@@ -8,8 +8,7 @@ This project contains tools which help automate the process of converting .blend
 
 [Youtube tutorial](https://youtu.be/gRIz8tc7ds8 "Tutorial") explaining how to create custom avatars from Makehuman/Reallusion -> Blender characters.
 ___
-Below is the documentation describing some of the steps required to trans
-![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/menu.png)
+Below is documentation describing some of the steps required to create and add custom avatars.
 
 ![Test Image 4](https://raw.githubusercontent.com/guiglass/AvatarBuilder/master/Documentation/builder.png)
 * First be sure that the `Blender Application` field points to the valid blender.exe installed on your PC (V2.79).
