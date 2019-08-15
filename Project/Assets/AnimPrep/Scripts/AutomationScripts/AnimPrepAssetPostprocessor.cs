@@ -119,8 +119,14 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 	void OnPreprocessAnimation()
 	{
-		ModelImporter modelImporter = assetImporter as ModelImporter;
-		modelImporter.clipAnimations = modelImporter.defaultClipAnimations;
+		ModelImporter importer = assetImporter as ModelImporter;
+
+		if (!importer.userData.Contains(reimportTag)) {//do not affect any other .fbx except for actual template avatars (aka re-imported models)
+			return;
+		}
+
+		Debug.Log (importer.userData);
+		importer.clipAnimations = importer.defaultClipAnimations;
 	}
 
 
