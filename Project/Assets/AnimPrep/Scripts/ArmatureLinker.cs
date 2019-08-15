@@ -24,6 +24,14 @@ public static class TransformDeepChildExtension
 
 public class ArmatureLinker : MonoBehaviour
 {
+
+	public enum CharacterType {
+		DEFAULT,
+		REALLUSION,
+		MAKEHUMAN
+	};
+	public CharacterType characterType = CharacterType.DEFAULT;
+
 	[Header("_Armature_")]
 	public string defaultModel = "Not_Yet_Set"; //a reference to an actual assetBundle so it's animations can be saved and loaded (Note if the default (non-assetbundle) model is used THIS WILL HAVE TO BE SET in the inspector field manually).
 
@@ -97,6 +105,8 @@ public class ArmatureLinker : MonoBehaviour
 	public Transform pinkyL;
 	public Transform thumbL;
 
+	[HideInInspector]
+	public GameObject restPose;
 
 	//Makehuman Facial Expressions
 	[System.Serializable]
@@ -134,10 +144,13 @@ public class ArmatureLinker : MonoBehaviour
 		public string shapeName; //only here (and public) so as to expose this field to the inspector when creating a list of template objects.
 		public float shapeWeight;
 	}
+	public BlendShapeParams[] faceRenderersParams;
 
-	public void PopulateFields (GameObject avatarMesh) {
+	public void PopulateFields (GameObject avatarMesh, CharacterType _characterType) {
 
-		hip = this.transform;// (HumanBodyBones.Hips);
+		characterType = _characterType;
+
+		hip = GetBoneTransform        (HumanBodyBones.Hips);// this.transform;//
 		chest = GetBoneTransform      (HumanBodyBones.Chest);
 		spine = GetBoneTransform      (HumanBodyBones.Spine);
 
@@ -180,61 +193,111 @@ public class ArmatureLinker : MonoBehaviour
 		pinkyR = GetBoneTransform     (HumanBodyBones.RightLittleProximal);
 		thumbR = GetBoneTransform     (HumanBodyBones.RightThumbProximal);
 
-		var _breastL =  chest.FindDeepChild ("breast.L"); //From makehuman default skeleton
-		if (_breastL != null) {
-			breastL = _breastL;
-		}
+		Transform _breastL;
+		Transform _breastR;
 
-		var _breastR =  chest.FindDeepChild ("breast.R"); //From makehuman default skeleton
-		if (_breastR != null) {
-			breastR = _breastR;
-		}
-
-		if (eyeL != null) {//Must be a makehuman character for this to work.
-			var _eyelidL = eyeL.parent.Find ("orbicularis03.L"); //From makehuman default skeleton
-			if (_eyelidL != null) {
-				eyelidL = _eyelidL;
+		switch (characterType) {
+		case ArmatureLinker.CharacterType.REALLUSION:
+			_breastL = chest.FindDeepChild ("CC_Base_L_Breast"); //From reallusion default skeleton
+			if (_breastL != null) {
+				breastL = _breastL;
 			}
-		}
-		if (eyeR != null) {//Must be a makehuman character for this to work.
-			var _eyelidR = eyeR.parent.Find ("orbicularis03.R"); //From makehuman default skeleton
-			if (_eyelidR != null) {
-				eyelidR = _eyelidR;
+
+			_breastR = chest.FindDeepChild ("CC_Base_R_Breast"); //From reallusion default skeleton
+			if (_breastR != null) {
+				breastR = _breastR;
 			}
+				
+			faceRenderersParams = faceRenderersParams_Reallusion;
+			break;
+		case ArmatureLinker.CharacterType.MAKEHUMAN:
+		case ArmatureLinker.CharacterType.DEFAULT:
+			_breastL = chest.FindDeepChild ("breast.L"); //From makehuman default skeleton
+			if (_breastL != null) {
+				breastL = _breastL;
+			}
+
+			_breastR = chest.FindDeepChild ("breast.R"); //From makehuman default skeleton
+			if (_breastR != null) {
+				breastR = _breastR;
+			}
+
+			if (eyeL != null) {//Must be a makehuman character for this to work.
+				var _eyelidL = eyeL.parent.Find ("orbicularis03.L"); //From makehuman default skeleton
+				if (_eyelidL != null) {
+					eyelidL = _eyelidL;
+				}
+			}
+			if (eyeR != null) {//Must be a makehuman character for this to work.
+				var _eyelidR = eyeR.parent.Find ("orbicularis03.R"); //From makehuman default skeleton
+				if (_eyelidR != null) {
+					eyelidR = _eyelidR;
+				}
+			}
+			faceRenderersParams = faceRenderersParams_MakeHuman;
+			break;
+		default:
+			Debug.LogError ("Non-templateType detected - unable to determine which blendshapes naming to use!");
+			return;
 		}
 
-		ApplyFaceController (avatarMesh);
+		ApplyFaceController (avatarMesh, faceRenderersParams);
+
 	}
 
+
+	//This is a Reallusion default facerig (and weights are for vocalizer expressions)
+	public static BlendShapeParams[] faceRenderersParams_Reallusion /*= new BlendShapeParams[]{};*/ = new BlendShapeParams[] {
+		new BlendShapeParams() {shapeName = "Brow_Drop_L", shapeWeight = 2.5f},
+		new BlendShapeParams() {shapeName = "Brow_Drop_R", shapeWeight = 2.5f},
+	
+		new BlendShapeParams() {shapeName = "Eye_Squint_L", shapeWeight = 2.0f},
+		new BlendShapeParams() {shapeName = "Eye_Squint_R", shapeWeight = 2.0f},
+	
+		new BlendShapeParams() {shapeName = "Cheek_Blow_L", shapeWeight = 0.8f},
+		new BlendShapeParams() {shapeName = "Cheek_Blow_R", shapeWeight = 0.8f},
+	
+		new BlendShapeParams() {shapeName = "Cheek_Raise_L", shapeWeight = 1.0f},
+		new BlendShapeParams() {shapeName = "Cheek_Raise_R", shapeWeight = 1.0f},
+	
+		new BlendShapeParams() {shapeName = "Mouth_Smile_L",  shapeWeight = 5.0f},
+		new BlendShapeParams() {shapeName = "Mouth_Smile_R", shapeWeight = 5.0f},
+	
+		new BlendShapeParams() {shapeName = "Lip_Open", shapeWeight = 7.5f},
+		new BlendShapeParams() {shapeName = "Mouth_Top_Lip_Up", shapeWeight = 5.0f},
+	};
+	
+	
+	
 	//This is a MakeHuman default facerig (and weights are for vocalizer expressions)
-	public BlendShapeParams[] faceRenderersParams /*= new BlendShapeParams[]{};*/ = new BlendShapeParams[] {
+	public static BlendShapeParams[] faceRenderersParams_MakeHuman /*= new BlendShapeParams[]{};*/ = new BlendShapeParams[] {
 		new BlendShapeParams() {shapeName = "brow_mid_down_left",    shapeWeight = 2.5f},
 		new BlendShapeParams() {shapeName = "brow_mid_down_right",   shapeWeight = 2.5f},
-
+	
 		new BlendShapeParams() {shapeName = "cheek_squint_left",     shapeWeight = 2.0f},
 		new BlendShapeParams() {shapeName = "cheek_squint_right",    shapeWeight = 2.0f},
-
+	
 		new BlendShapeParams() {shapeName = "cheek_balloon_left",    shapeWeight = 0.8f},
 		new BlendShapeParams() {shapeName = "cheek_balloon_right",   shapeWeight = 0.8f},
-
+	
 		new BlendShapeParams() {shapeName = "cheek_up_left",         shapeWeight = 1.0f},
 		new BlendShapeParams() {shapeName = "cheek_up_right",        shapeWeight = 1.0f},
-
+	
 		new BlendShapeParams() {shapeName = "mouth_corner_in_left",  shapeWeight = 1.0f},
 		new BlendShapeParams() {shapeName = "mouth_corner_in_right", shapeWeight = 1.0f},
-
+	
 		new BlendShapeParams() {shapeName = "mouth_corner_up_left",  shapeWeight = 5.0f},
 		new BlendShapeParams() {shapeName = "mouth_corner_up_right", shapeWeight = 5.0f},
-
+	
 		new BlendShapeParams() {shapeName = "mouth_wide_left",       shapeWeight = 15.0f},
 		new BlendShapeParams() {shapeName = "mouth_wide_right",      shapeWeight = 15.0f},
-
+	
 		new BlendShapeParams() {shapeName = "lips_part",             shapeWeight = 7.5f},
 		new BlendShapeParams() {shapeName = "lips_upper_in",         shapeWeight = 5.0f},
 	};
 
 
-	public void ApplyFaceController(GameObject armatureMesh) {
+	public void ApplyFaceController(GameObject armatureMesh, BlendShapeParams[] faceRenderersParams) {
 		//iterate through all blendshapes in each mesh until a mesh with all blendshapes is found that match the BlendShapeParams array from the template (which is the mesh for face renderer)
 		foreach (Transform t in armatureMesh.transform) {
 			SkinnedMeshRenderer mesh = t.GetComponent<SkinnedMeshRenderer> ();
@@ -244,7 +307,8 @@ public class ArmatureLinker : MonoBehaviour
 
 			bool state = mesh.sharedMesh.blendShapeCount > 0;
 			foreach (BlendShapeParams blendShape in faceRenderersParams) {
-				state = state && (mesh.sharedMesh.GetBlendShapeIndex (blendShape.shapeName) != -1);		
+				state = state && (mesh.sharedMesh.GetBlendShapeIndex (blendShape.shapeName) != -1);	
+				//Debug.Log("STATE " + state + " --- " + blendShape.shapeName);
 				if (!state) {
 					break;
 				}

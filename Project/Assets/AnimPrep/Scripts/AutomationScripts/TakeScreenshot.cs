@@ -249,9 +249,7 @@ public class TakeScreenshot : MonoBehaviour {
 
 		SetFrustumToSceneObject (sceneObject);
 	}
-
-	public Material skyboxMaterial;
-
+		
 	public Light directionalLight;
 
 	public Texture2D CamCapture()
