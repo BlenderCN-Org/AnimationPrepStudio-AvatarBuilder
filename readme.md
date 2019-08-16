@@ -4,13 +4,13 @@ This project contains tools which help automate the process of converting .blend
 
 Recently added Reallusion support!!
 
+Youtube tutorial on how to create custom avatars from Makehuman/Reallusion -> Blender characters:
 ## Getting Started Reallusion:
 [![Youtube Tutorial](https://img.youtube.com/vi/US4zInM82EM/0.jpg)](https://www.youtube.com/watch?v=US4zInM82EM)
 
 ## Getting Started Makehuman:
 [![Youtube Tutorial](https://img.youtube.com/vi/gRIz8tc7ds8/0.jpg)](https://www.youtube.com/watch?v=gRIz8tc7ds8)
 
-[Youtube tutorial](https://youtu.be/gRIz8tc7ds8 "Tutorial") explaining how to create custom avatars from Makehuman/Reallusion -> Blender characters.
 ___
 Below is documentation describing some of the steps required to create and add custom avatars.
 
