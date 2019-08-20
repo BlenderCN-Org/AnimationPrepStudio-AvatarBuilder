@@ -109,7 +109,7 @@ using System.Threading;
 				var enumName = System.Enum.GetName (typeof(ArmatureLinker.CharacterType), ArmatureLinker.CharacterType.DEFAULT);
 				Debug.LogError (string.Format("You must specify a character type (\"{0}\" is not a valid selection)", enumName));
 				EditorUtility.DisplayDialog("Error",
-					string.Format("Character type: \"{0}\" is not a valid!\n\nPlease select a desired character type first.", enumName),
+					string.Format("Character type: \"{0}\" is not a valid selection!\n\nPlease select a desired character type first.", enumName),
 					"Ok");
 				
 				return;
