@@ -160,7 +160,7 @@ ModelImporter:
         value: {x: 0, y: 0, z: 0}
         length: 0
         modified: 0
-    - boneName: CC_Base_Waist
+    - boneName: CC_Base_Spine01
       humanName: Spine
       limit:
         min: {x: 0, y: 0, z: 0}
@@ -168,7 +168,7 @@ ModelImporter:
         value: {x: 0, y: 0, z: 0}
         length: 0
         modified: 0
-    - boneName: CC_Base_Spine01
+    - boneName: CC_Base_Spine02
       humanName: Chest
       limit:
         min: {x: 0, y: 0, z: 0}
@@ -530,14 +530,6 @@ ModelImporter:
         modified: 0
     - boneName: CC_Base_R_Pinky3
       humanName: Right Little Distal
-      limit:
-        min: {x: 0, y: 0, z: 0}
-        max: {x: 0, y: 0, z: 0}
-        value: {x: 0, y: 0, z: 0}
-        length: 0
-        modified: 0
-    - boneName: CC_Base_Spine02
-      humanName: UpperChest
       limit:
         min: {x: 0, y: 0, z: 0}
         max: {x: 0, y: 0, z: 0}
@@ -914,7 +906,7 @@ ModelImporter:
     - name: CC_Base_L_Pinky1
       parentName: CC_Base_L_Hand
       position: {x: -0.004692339, y: 0.08538988, z: -0.015550103}
-      rotation: {x: 0.0281383, y: -0.000105960586, z: 0.023897663, w: 0.9993183}
+      rotation: {x: 0.028138302, y: -0.000105960586, z: 0.023897665, w: 0.9993183}
       scale: {x: 1.0000052, y: 1.0000056, z: 0.9999989}
     - name: CC_Base_L_Pinky2
       parentName: CC_Base_L_Pinky1
@@ -954,12 +946,12 @@ ModelImporter:
     - name: CC_Base_L_Thumb1
       parentName: CC_Base_L_Hand
       position: {x: -0.006918651, y: 0.016970282, z: 0.022361042}
-      rotation: {x: 0.40926075, y: 0.12935312, z: 0.064304, w: 0.9009097}
+      rotation: {x: 0.40926078, y: 0.12935314, z: 0.06430401, w: 0.9009098}
       scale: {x: 1.0000103, y: 1.0000114, z: 0.9999996}
     - name: CC_Base_L_Thumb2
       parentName: CC_Base_L_Thumb1
       position: {x: -0.000023668632, y: 0.052674282, z: -0.00004416518}
-      rotation: {x: -0.03461715, y: 0.000097989956, z: -0.0053141434, w: 0.9993866}
+      rotation: {x: -0.034617145, y: 0.000097989956, z: -0.005314143, w: 0.9993866}
       scale: {x: 1.0000099, y: 0.9999861, z: 1.0000212}
     - name: CC_Base_L_Thumb3
       parentName: CC_Base_L_Thumb2
@@ -1044,7 +1036,7 @@ ModelImporter:
     - name: CC_Base_Tongue02
       parentName: CC_Base_Tongue01
       position: {x: -0.010591549, y: -0.0000363196, z: -0.00000011651355}
-      rotation: {x: -0.000019963527, y: 0.00026496436, z: 0.08909772, w: -0.99602294}
+      rotation: {x: -0.000019963525, y: 0.00026496436, z: 0.089097716, w: -0.99602294}
       scale: {x: 1.00001, y: 1.0000156, z: 1.0000091}
     - name: CC_Base_Tongue03
       parentName: CC_Base_Tongue02
@@ -1099,7 +1091,7 @@ ModelImporter:
     - name: CC_Base_R_Upperarm
       parentName: CC_Base_R_Clavicle
       position: {x: 0.000049762893, y: 0.099882744, z: -0.000029429735}
-      rotation: {x: 0.12609099, y: -0.00095933664, z: -0.01246352, w: 0.9919399}
+      rotation: {x: 0.126091, y: -0.00095933664, z: -0.012463521, w: 0.9919399}
       scale: {x: 0.99999917, y: 0.9999993, z: 1.000001}
     - name: CC_Base_R_Forearm
       parentName: CC_Base_R_Upperarm
@@ -1180,7 +1172,7 @@ ModelImporter:
     - name: CC_Base_R_Pinky1
       parentName: CC_Base_R_Hand
       position: {x: 0.0047600614, y: 0.08546059, z: -0.015555348}
-      rotation: {x: 0.028231017, y: 0.00011270731, z: -0.023775395, w: 0.9993187}
+      rotation: {x: 0.028231014, y: 0.00011270731, z: -0.023775391, w: 0.9993187}
       scale: {x: 1.0000051, y: 1.000007, z: 1.0000012}
     - name: CC_Base_R_Pinky2
       parentName: CC_Base_R_Pinky1

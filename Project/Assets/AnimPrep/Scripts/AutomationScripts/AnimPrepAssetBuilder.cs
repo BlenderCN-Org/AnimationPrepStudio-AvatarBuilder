@@ -75,7 +75,7 @@ using System.Threading;
 		customLabel.normal.textColor = new Color(0.5f,0.5f,0.5f);
 		customLabel.fontStyle = FontStyle.Bold;
 
-		GUILayout.Label("Version: 1.0.2", customLabel);
+		GUILayout.Label("Version: 1.0.3", customLabel);
 		EditorGUILayout.EndVertical();
 
 
